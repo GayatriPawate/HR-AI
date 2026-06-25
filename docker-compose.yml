@@ -1,0 +1,46 @@
+version: "3.9"
+
+# Quick-start for local development with Docker
+# Usage: docker-compose up --build
+
+services:
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: hr_chromadb
+    volumes:
+      - chroma_data:/chroma/.chroma
+    ports:
+      - "8002:8000"
+    environment:
+      - ANONYMIZED_TELEMETRY=false
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: hr_api
+    env_file:
+      - .env
+    environment:
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./chroma_data:/app/chroma_data
+    depends_on:
+      - chromadb
+
+  ui:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ui
+    container_name: hr_ui
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+
+volumes:
+  chroma_data:

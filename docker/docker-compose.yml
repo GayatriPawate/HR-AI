@@ -1,0 +1,77 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hr_postgres
+    environment:
+      POSTGRES_DB: hr_platform
+      POSTGRES_USER: ${DB_USER:-hruser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-hrpassword}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-hruser}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: hr_chromadb
+    volumes:
+      - chroma_data:/chroma/.chroma
+    ports:
+      - "8002:8000"
+    environment:
+      - ANONYMIZED_TELEMETRY=false
+
+  redis:
+    image: redis:7-alpine
+    container_name: hr_redis
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    container_name: hr_api
+    env_file:
+      - ../.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${DB_USER:-hruser}:${DB_PASSWORD:-hrpassword}@postgres:5432/hr_platform
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: 8000
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads:/app/uploads
+
+  ui:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ui
+    container_name: hr_ui
+    environment:
+      API_BASE_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  chroma_data:
+  redis_data:
+  uploads:

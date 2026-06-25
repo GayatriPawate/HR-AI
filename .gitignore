@@ -1,0 +1,34 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Database
+*.db
+*.sqlite3
+
+# Chroma vector store
+chroma_data/
+
+# Uploads
+uploads/
+
+# Logs
+logs/
+
+# Environment secrets
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
